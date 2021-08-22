@@ -95,8 +95,9 @@ export abstract class CommonOutputJax<
     exFactor: .5,                  // default size of ex in em units
     displayAlign: 'center',        // default for indentalign when set to 'auto'
     displayIndent: '0',            // default for indentshift when set to 'auto'
+    font: 'tex',                   // the font component to load
     wrapperFactory: null,          // The wrapper factory to use
-    font: null,                    // The FontData object to use
+    fontData: null,                // The FontData object to use
     cssStyles: null                // The CssStyles object to use
   };
 
@@ -181,9 +182,17 @@ export abstract class CommonOutputJax<
   constructor(options: OptionList = null,
               defaultFactory: typeof CommonWrapperFactory = null,
               defaultFont: FC = null) {
-    const [fontClass, font] = (options.font instanceof FontData ?
-                               [options.font.constructor as typeof FontData, options.font] :
-                               [options.font || defaultFont, null]);
+    //
+    // Backward compatibility with old usage of font option
+    //
+    if (options.font && typeof(options.font) !== 'string') {
+      options.fontData = options.font;
+      options.font = 'tex';
+    }
+    //
+    const [fontClass, font] = (options.fontData instanceof FontData ?
+                               [options.fontData.constructor as typeof FontData, options.fontData] :
+                               [options.fontData || defaultFont, null]);
     const [jaxOptions, fontOptions] = separateOptions(options, fontClass.OPTIONS);
     super(jaxOptions);
     this.factory = this.options.wrapperFactory ||
