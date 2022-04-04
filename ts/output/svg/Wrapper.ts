@@ -21,14 +21,18 @@
  * @author dpvc@mathjax.org (Davide Cervone)
  */
 
-import {OptionList} from '../../util/Options.js';
-import {BBox} from '../../util/BBox.js';
-import {CommonWrapper, AnyWrapperClass, Constructor} from '../common/Wrapper.js';
-import {SVG, XLINKNS} from '../svg.js';
-import {SVGWrapperFactory} from './WrapperFactory.js';
-import {SVGFontData, SVGDelimiterData, SVGCharOptions} from './FontData.js';
+import { OptionList } from '../../util/Options.js';
+import { BBox } from '../../util/BBox.js';
+import {
+  CommonWrapper,
+  AnyWrapperClass,
+  Constructor,
+} from '../common/Wrapper.js';
+import { SVG, XLINKNS } from '../svg.js';
+import { SVGWrapperFactory } from './WrapperFactory.js';
+import { SVGFontData, SVGDelimiterData, SVGCharOptions } from './FontData.js';
 
-export {Constructor, StringMap} from '../common/Wrapper.js';
+export { Constructor, StringMap } from '../common/Wrapper.js';
 
 /*****************************************************************/
 
@@ -37,15 +41,12 @@ export {Constructor, StringMap} from '../common/Wrapper.js';
  */
 export type SVGConstructor<N, T, D> = Constructor<SVGWrapper<N, T, D>>;
 
-
 /*****************************************************************/
 /**
  *  The type of the SVGWrapper class (used when creating the wrapper factory for this class)
  */
 export interface SVGWrapperClass extends AnyWrapperClass {
-
   kind: string;
-
 }
 
 /*****************************************************************/
@@ -56,8 +57,7 @@ export interface SVGWrapperClass extends AnyWrapperClass {
  * @template T  The Text node class
  * @template D  The Document class
  */
-export class SVGWrapper<N, T, D> extends
-CommonWrapper<
+export class SVGWrapper<N, T, D> extends CommonWrapper<
   SVG<N, T, D>,
   SVGWrapper<N, T, D>,
   SVGWrapperClass,
@@ -65,7 +65,6 @@ CommonWrapper<
   SVGDelimiterData,
   SVGFontData
 > {
-
   /**
    * The kind of wrapper
    */
@@ -121,13 +120,25 @@ CommonWrapper<
    */
   public addChildren(parent: N) {
     let x = 0;
-    for (const child of this.childNodes) {
+    let y = 0;
+
+    for (let i = 0; i < this.childNodes.length; ++i) {
+      const child = this.childNodes[i];
+      const prev = this.childNodes[i - 1];
+
       child.toSVG(parent);
-      const bbox = child.getOuterBBox();
-      if (child.element) {
-        child.place(x + bbox.L * bbox.rscale, 0);
+      if (this.isLineBreakNode(child) && prev && child.element) {
+        const bbox = prev.getOuterBBox();
+        const top = bbox.h * bbox.rscale + 0.18;
+        y -= top;
+        x = 0;
+      } else {
+        const bbox = child.getOuterBBox();
+        if (child.element) {
+          child.place(x + bbox.L * bbox.rscale, y);
+        }
+        x += (bbox.L + bbox.w + bbox.R) * bbox.rscale;
       }
-      x += (bbox.L + bbox.w + bbox.R) * bbox.rscale;
     }
   }
 
@@ -154,15 +165,23 @@ CommonWrapper<
    * @returns {N}  The root of the HTML tree for the wrapped node's output
    */
   protected createSVGnode(parent: N): N {
-    this.element = this.svg('g', {'data-mml-node': this.node.kind});
+    this.element = this.svg('g', { 'data-mml-node': this.node.kind });
     const href = this.node.attributes.get('href');
     if (href) {
-      parent = this.adaptor.append(parent, this.svg('a', {href: href})) as N;
-      const {h, d, w} = this.getOuterBBox();
-      this.adaptor.append(this.element, this.svg('rect', {
-        'data-hitbox': true, fill: 'none', stroke: 'none', 'pointer-events': 'all',
-        width: this.fixed(w), height: this.fixed(h + d), y: this.fixed(-d)
-      }));
+      parent = this.adaptor.append(parent, this.svg('a', { href: href })) as N;
+      const { h, d, w } = this.getOuterBBox();
+      this.adaptor.append(
+        this.element,
+        this.svg('rect', {
+          'data-hitbox': true,
+          fill: 'none',
+          stroke: 'none',
+          'pointer-events': 'all',
+          width: this.fixed(w),
+          height: this.fixed(h + d),
+          y: this.fixed(-d),
+        })
+      );
     }
     this.adaptor.append(parent, this.element) as N;
     return this.element;
@@ -208,19 +227,20 @@ CommonWrapper<
     const color = attributes.getExplicit('color') as string;
     const mathbackground = attributes.getExplicit('mathbackground') as string;
     const background = attributes.getExplicit('background') as string;
-    const bgcolor = (this.styles?.get('background-color') || '');
+    const bgcolor = this.styles?.get('background-color') || '';
     if (mathcolor || color) {
       adaptor.setAttribute(this.element, 'fill', mathcolor || color);
       adaptor.setAttribute(this.element, 'stroke', mathcolor || color);
     }
     if (mathbackground || background || bgcolor) {
-      let {h, d, w} = this.getOuterBBox();
+      let { h, d, w } = this.getOuterBBox();
       let rect = this.svg('rect', {
         fill: mathbackground || background || bgcolor,
-        x: this.fixed(-this.dx), y: this.fixed(-d),
+        x: this.fixed(-this.dx),
+        y: this.fixed(-d),
         width: this.fixed(w),
         height: this.fixed(h + d),
-        'data-bgcolor': true
+        'data-bgcolor': true,
       });
       let child = adaptor.firstChild(this.element);
       if (child) {
@@ -239,7 +259,12 @@ CommonWrapper<
     const width = Array(4).fill(0);
     const style = Array(4);
     const color = Array(4);
-    for (const [name, i] of [['Top', 0], ['Right', 1], ['Bottom', 2], ['Left', 3]] as [string, number][]) {
+    for (const [name, i] of [
+      ['Top', 0],
+      ['Right', 1],
+      ['Bottom', 2],
+      ['Left', 3],
+    ] as [string, number][]) {
       const key = 'border' + name;
       const w = this.styles.get(key + 'Width');
       if (!w) continue;
@@ -262,7 +287,7 @@ CommonWrapper<
       [outerLT, outerRT, innerRT, innerLT],
       [outerRB, outerRT, innerRT, innerRB],
       [outerLB, outerRB, innerRB, innerLB],
-      [outerLB, outerLT, innerLT, innerLB]
+      [outerLB, outerLT, innerLT, innerLB],
     ];
     const adaptor = this.adaptor;
     const child = adaptor.firstChild(this.element) as N;
@@ -286,9 +311,11 @@ CommonWrapper<
    */
   protected addBorderSolid(path: number[][], color: string, child: N) {
     const border = this.svg('polygon', {
-      points: path.map(([x, y]) => `${this.fixed(x - this.dx)},${this.fixed(y)}`).join(' '),
+      points: path
+        .map(([x, y]) => `${this.fixed(x - this.dx)},${this.fixed(y)}`)
+        .join(' '),
       stroke: 'none',
-      fill: color
+      fill: color,
     });
     if (child) {
       this.adaptor.insert(border, child);
@@ -306,21 +333,40 @@ CommonWrapper<
    * @param {number} t                  The thickness for the border line
    * @param {number} i                  The side being drawn
    */
-  protected addBorderBroken(path: number[][], color: string, style: string, t: number, i: number) {
-    const dot = (style === 'dotted');
+  protected addBorderBroken(
+    path: number[][],
+    color: string,
+    style: string,
+    t: number,
+    i: number
+  ) {
+    const dot = style === 'dotted';
     const t2 = t / 2;
-    const [tx1, ty1, tx2, ty2] = [[t2, -t2, -t2, -t2], [-t2, t2, -t2, -t2], [t2, t2, -t2, t2], [t2, t2, t2, -t2]][i];
+    const [tx1, ty1, tx2, ty2] = [
+      [t2, -t2, -t2, -t2],
+      [-t2, t2, -t2, -t2],
+      [t2, t2, -t2, t2],
+      [t2, t2, t2, -t2],
+    ][i];
     const [A, B] = path;
-    const x1 = A[0] + tx1 - this.dx, y1 = A[1] + ty1;
-    const x2 = B[0] + tx2 - this.dx, y2 = B[1] + ty2;
+    const x1 = A[0] + tx1 - this.dx,
+      y1 = A[1] + ty1;
+    const x2 = B[0] + tx2 - this.dx,
+      y2 = B[1] + ty2;
     const W = Math.abs(i % 2 ? y2 - y1 : x2 - x1);
-    const n = (dot ? Math.ceil(W / (2 * t)) : Math.ceil((W - t) / (4 * t)));
+    const n = dot ? Math.ceil(W / (2 * t)) : Math.ceil((W - t) / (4 * t));
     const m = W / (4 * n + 1);
     const line = this.svg('line', {
-      x1: this.fixed(x1), y1: this.fixed(y1),
-      x2: this.fixed(x2), y2: this.fixed(y2),
-      'stroke-width': this.fixed(t), stroke: color, 'stroke-linecap': dot ? 'round' : 'square',
-      'stroke-dasharray': dot ? [1, this.fixed(W / n - .002)].join(' ') : [this.fixed(m), this.fixed(3 * m)].join(' ')
+      x1: this.fixed(x1),
+      y1: this.fixed(y1),
+      x2: this.fixed(x2),
+      y2: this.fixed(y2),
+      'stroke-width': this.fixed(t),
+      stroke: color,
+      'stroke-linecap': dot ? 'round' : 'square',
+      'stroke-dasharray': dot
+        ? [1, this.fixed(W / n - 0.002)].join(' ')
+        : [this.fixed(m), this.fixed(3 * m)].join(' '),
     });
     const adaptor = this.adaptor;
     const child = adaptor.firstChild(this.element);
@@ -343,9 +389,17 @@ CommonWrapper<
     const defaults = attributes.getAllDefaults();
     const skip = SVGWrapper.skipAttributes;
     for (const name of attributes.getExplicitNames()) {
-      if (skip[name] === false || (!(name in defaults) && !skip[name] &&
-                                   !this.adaptor.hasAttribute(this.element, name))) {
-        this.adaptor.setAttribute(this.element, name, attributes.getExplicit(name) as string);
+      if (
+        skip[name] === false ||
+        (!(name in defaults) &&
+          !skip[name] &&
+          !this.adaptor.hasAttribute(this.element, name))
+      ) {
+        this.adaptor.setAttribute(
+          this.element,
+          name,
+          attributes.getExplicit(name) as string
+        );
       }
     }
     if (attributes.get('class')) {
@@ -372,7 +426,11 @@ CommonWrapper<
     }
     const translate = `translate(${this.fixed(x)},${this.fixed(y)})`;
     const transform = this.adaptor.getAttribute(element, 'transform') || '';
-    this.adaptor.setAttribute(element, 'transform', translate + (transform ? ' ' + transform : ''));
+    this.adaptor.setAttribute(
+      element,
+      'transform',
+      translate + (transform ? ' ' + transform : '')
+    );
   }
 
   /**
@@ -394,13 +452,20 @@ CommonWrapper<
     //
     //  Remove the element's children and put them into a <g> with transform
     //
-    const children =  adaptor.childNodes(this.element);
-    children.forEach(child => adaptor.remove(child));
-    const g = this.svg('g', {'data-idbox': true, transform: `translate(0,${this.fixed(-h)})`}, children);
+    const children = adaptor.childNodes(this.element);
+    children.forEach((child) => adaptor.remove(child));
+    const g = this.svg(
+      'g',
+      { 'data-idbox': true, transform: `translate(0,${this.fixed(-h)})` },
+      children
+    );
     //
     //  Add the text element (not transformed) and the transformed <g>
     //
-    adaptor.append(this.element, this.svg('text', {'data-id-align': true} , [this.text('')]));
+    adaptor.append(
+      this.element,
+      this.svg('text', { 'data-id-align': true }, [this.text('')])
+    );
     adaptor.append(this.element, g);
     return y + h;
   }
@@ -413,10 +478,18 @@ CommonWrapper<
   public firstChild(): N {
     const adaptor = this.adaptor;
     let child = adaptor.firstChild(this.element);
-    if (child && adaptor.kind(child) === 'text' && adaptor.getAttribute(child, 'data-id-align')) {
+    if (
+      child &&
+      adaptor.kind(child) === 'text' &&
+      adaptor.getAttribute(child, 'data-id-align')
+    ) {
       child = adaptor.firstChild(adaptor.next(child));
     }
-    if (child && adaptor.kind(child) === 'rect' && adaptor.getAttribute(child, 'data-hitbox')) {
+    if (
+      child &&
+      adaptor.kind(child) === 'rect' &&
+      adaptor.getAttribute(child, 'data-hitbox')
+    ) {
       child = adaptor.next(child);
     }
     return child;
@@ -430,17 +503,27 @@ CommonWrapper<
    * @param {string} variant  The variant to use for the character
    * @return {number}         The width of the character
    */
-  public placeChar(n: number, x: number, y: number, parent: N, variant: string = null): number {
+  public placeChar(
+    n: number,
+    x: number,
+    y: number,
+    parent: N,
+    variant: string = null
+  ): number {
     if (variant === null) {
       variant = this.variant;
     }
     const C = n.toString(16).toUpperCase();
-    const [ , , w, data] = this.getVariantChar(variant, n);
+    const [, , w, data] = this.getVariantChar(variant, n);
     if ('p' in data) {
-      const path = (data.p ? 'M' + data.p + 'Z' : '');
-      this.place(x, y, this.adaptor.append(parent, this.charNode(variant, C, path)));
+      const path = data.p ? 'M' + data.p + 'Z' : '';
+      this.place(
+        x,
+        y,
+        this.adaptor.append(parent, this.charNode(variant, C, path))
+      );
     } else if ('c' in data) {
-      const g = this.adaptor.append(parent, this.svg('g', {'data-c': C}));
+      const g = this.adaptor.append(parent, this.svg('g', { 'data-c': C }));
       this.place(x, y, g);
       x = 0;
       for (const n of this.unicodeChars(data.c, variant)) {
@@ -448,7 +531,10 @@ CommonWrapper<
       }
     } else if (data.unknown) {
       const char = String.fromCodePoint(n);
-      const text = this.adaptor.append(parent, this.jax.unknownText(char, variant));
+      const text = this.adaptor.append(
+        parent,
+        this.jax.unknownText(char, variant)
+      );
       this.place(x, y, text);
       return this.jax.measureTextNodeWithCache(text, char, variant).w;
     }
@@ -463,7 +549,9 @@ CommonWrapper<
    */
   protected charNode(variant: string, C: string, path: string): N {
     const cache = this.jax.options.fontCache;
-    return (cache !== 'none' ? this.useNode(variant, C, path) : this.pathNode(C, path));
+    return cache !== 'none'
+      ? this.useNode(variant, C, path)
+      : this.pathNode(C, path);
   }
 
   /**
@@ -472,7 +560,7 @@ CommonWrapper<
    * @return {N}                The <path> for the glyph
    */
   protected pathNode(C: string, path: string): N {
-    return this.svg('path', {'data-c': C, d: path});
+    return this.svg('path', { 'data-c': C, d: path });
   }
 
   /**
@@ -482,7 +570,7 @@ CommonWrapper<
    * @return {N}                The <use> node for the glyph
    */
   protected useNode(variant: string, C: string, path: string): N {
-    const use = this.svg('use', {'data-c': C});
+    const use = this.svg('use', { 'data-c': C });
     const id = '#' + this.jax.fontCache.cachePath(variant, C, path);
     this.adaptor.setAttribute(use, 'href', id, XLINKNS);
     return use;
@@ -494,22 +582,28 @@ CommonWrapper<
    */
 
   public drawBBox() {
-    let {w, h, d}  = this.getBBox();
-    const box = this.svg('g', {style: {
-      opacity: .25
-    }}, [
-      this.svg('rect', {
-        fill: 'red',
-        height: this.fixed(h),
-        width: this.fixed(w)
-      }),
-      this.svg('rect', {
-        fill: 'green',
-        height: this.fixed(d),
-        width: this.fixed(w),
-        y: this.fixed(-d)
-      })
-    ] as N[]);
+    let { w, h, d } = this.getBBox();
+    const box = this.svg(
+      'g',
+      {
+        style: {
+          opacity: 0.25,
+        },
+      },
+      [
+        this.svg('rect', {
+          fill: 'red',
+          height: this.fixed(h),
+          width: this.fixed(w),
+        }),
+        this.svg('rect', {
+          fill: 'green',
+          height: this.fixed(d),
+          width: this.fixed(w),
+          y: this.fixed(-d),
+        }),
+      ] as N[]
+    );
     const node = this.element || this.parent.element;
     this.adaptor.append(node, box);
   }
@@ -556,4 +650,19 @@ CommonWrapper<
     return this.jax.fixed(x * 1000, n);
   }
 
+  public childIndexOf(child: SVGWrapper<N, T, D>): number {
+    return this.childNodes.indexOf(child);
+  }
+
+  public childByIndex(index: number): SVGWrapper<N, T, D> {
+    return this.childNodes[index];
+  }
+
+  public isLineBreakNode(child: SVGWrapper<N, T, D>) {
+    if (child.node.attributes) {
+      return child.node.attributes.get('linebreak') === 'newline';
+    }
+
+    return false;
+  }
 }
