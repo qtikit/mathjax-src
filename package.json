@@ -1,5 +1,5 @@
 {
-  "name": "mathjax-full",
+  "name": "@qtikit/mathjax-full",
   "version": "3.2.2",
   "description": "Beautiful and accessible math in all browsers. MathJax is an open-source JavaScript display engine for LaTeX, MathML, and AsciiMath notation that works in all browsers and in server-side node applications. This package includes the source code as well as the packaged components.",
   "license": "Apache-2.0",
@@ -10,6 +10,7 @@
     "/ts",
     "/components",
     "LICENSE",
+    "NOTICE",
     "README.md",
     "CONTRIBUTING.md",
     "tsconfig.json",
@@ -65,6 +66,15 @@
     "esm": "^3.2.25",
     "mhchemparser": "^4.1.0",
     "mj-context-menu": "^0.6.1",
+<<<<<<< HEAD
     "speech-rule-engine": "^4.0.6"
+||||||| parent of 70c8cf0d (Update publish config)
+    "speech-rule-engine": "^3.3.3"
+=======
+    "speech-rule-engine": "^3.3.3"
+  },
+  "publishConfig": {
+    "access": "public"
+>>>>>>> 70c8cf0d (Update publish config)
   }
 }
